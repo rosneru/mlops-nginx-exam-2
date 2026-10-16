@@ -8,3 +8,9 @@ test-api:
      -d '{"sentence": "Oh yeah, that was soooo cool!"}' \
 	 --user admin:admin \
      --cacert ./deployments/nginx/certs/nginx.crt;
+
+start-project:
+	docker compose up -d --build
+
+stop-project:
+	docker compose down

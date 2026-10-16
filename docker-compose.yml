@@ -1,4 +1,26 @@
+name: mlops-nginx
+
 services:
+  api-v1:
+    build:
+      context: .
+      dockerfile: src/api/v1/Dockerfile
+    expose:
+      - "8000"
+    deploy:
+      replicas: 3
+
+  nginx:
+    build:
+      context: deployments/nginx/
+      dockerfile: Dockerfile
+    container_name: nginx_revproxy
+    ports:
+      - "8080:80"
+      - "443:443"
+    depends_on:
+      - api-v1
+
   prometheus:
     image: prom/prometheus:latest
     container_name: prometheus_server
