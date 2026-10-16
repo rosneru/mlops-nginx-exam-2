@@ -1,3 +1,7 @@
+## About
+
+**Note:** > **Architecture, usage and design decisions: see [README_student.md](README_student.md)**
+
 ## Instructions pour l'Examen / Exam Instructions
 
 <details>

@@ -1,4 +1,6 @@
-## Exam submission for MLOps Nginx Exam 2
+## About
+
+Nginx exam submission completed by Uwe Rosner as part of the Liora MLOps training.
 
 ## Architecture
 
