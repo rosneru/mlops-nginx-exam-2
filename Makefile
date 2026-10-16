@@ -10,7 +10,7 @@ test-api:
      --cacert ./deployments/nginx/certs/nginx.crt;
 
 start-project:
-	docker compose up -d --build
+	docker compose up -d --build --wait
 
 stop-project:
 	docker compose down

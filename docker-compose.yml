@@ -1,5 +1,15 @@
 name: mlops-nginx
 
+# Healthcheck shared by both API versions: the container counts as healthy
+# once uvicorn answers (python is the only tool available in the image)
+x-api-healthcheck: &api-healthcheck
+  test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/openapi.json')"]
+  interval: 10s
+  timeout: 3s
+  retries: 3
+  start_period: 30s
+  start_interval: 1s
+
 services:
   api-v1:
     build:
@@ -9,6 +19,7 @@ services:
       - "8000"
     deploy:
       replicas: 3
+    healthcheck: *api-healthcheck
 
   # Debug version, only reached via header "X-Experiment-Group: debug"
   api-v2:
@@ -17,6 +28,7 @@ services:
       dockerfile: src/api/v2/Dockerfile
     expose:
       - "8000"
+    healthcheck: *api-healthcheck
 
   nginx:
     build:
@@ -26,9 +38,20 @@ services:
     ports:
       - "8080:80"
       - "443:443"
+    # Start nginx only once the APIs are ready, otherwise the first
+    # requests would fail with 502
     depends_on:
-      - api-v1
-      - api-v2
+      api-v1:
+        condition: service_healthy
+      api-v2:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "-o", "/dev/null", "http://localhost:8081/nginx_status"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 30s
+      start_interval: 1s
 
   # Converts Nginx stub_status into Prometheus metrics; port 8081 of
   # nginx is not published, so /nginx_status stays internal
@@ -52,6 +75,13 @@ services:
       - prometheus_data:/prometheus
     depends_on:
       - nginx-exporter
+    healthcheck:
+      test: ["CMD", "wget", "-qO", "/dev/null", "http://localhost:9090/-/ready"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 30s
+      start_interval: 1s
 
   grafana:
     image: grafana/grafana:latest
@@ -65,6 +95,13 @@ services:
     environment:
       - GF_SECURITY_ADMIN_USER=admin
       - GF_SECURITY_ADMIN_PASSWORD=admin
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "-o", "/dev/null", "http://localhost:3000/api/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 60s
+      start_interval: 1s
 
 volumes:
   prometheus_data:
