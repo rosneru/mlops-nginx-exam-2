@@ -10,6 +10,14 @@ services:
     deploy:
       replicas: 3
 
+  # Debug version, only reached via header "X-Experiment-Group: debug"
+  api-v2:
+    build:
+      context: .
+      dockerfile: src/api/v2/Dockerfile
+    expose:
+      - "8000"
+
   nginx:
     build:
       context: deployments/nginx/
@@ -20,6 +28,19 @@ services:
       - "443:443"
     depends_on:
       - api-v1
+      - api-v2
+
+  # Converts Nginx stub_status into Prometheus metrics; port 8081 of
+  # nginx is not published, so /nginx_status stays internal
+  nginx-exporter:
+    image: nginx/nginx-prometheus-exporter:1.5.3
+    container_name: nginx_exporter
+    command:
+      - --nginx.scrape-uri=http://nginx:8081/nginx_status
+    expose:
+      - "9113"
+    depends_on:
+      - nginx
 
   prometheus:
     image: prom/prometheus:latest
@@ -30,7 +51,7 @@ services:
       - ./deployments/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - prometheus_data:/prometheus
     depends_on:
-      - nginx
+      - nginx-exporter
 
   grafana:
     image: grafana/grafana:latest

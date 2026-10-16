@@ -14,3 +14,8 @@ start-project:
 
 stop-project:
 	docker compose down
+
+test:
+	./tests/run_tests.sh
+
+.PHONY: run-project test-api start-project stop-project test

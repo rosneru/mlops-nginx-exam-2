@@ -1,9 +1,12 @@
-# Build-Kontext ist das Repo-Root (wegen model/ und uv.lock):
+# The build context is the repo root (because of model/ and uv.lock):
 #   docker build -f src/api/v1/Dockerfile -t api-v1 .
 FROM python:3.13-slim
 
+# Install uv: copy the binaries from the official uv image
+# (version pinned to match the local uv used to create uv.lock)
 COPY --from=ghcr.io/astral-sh/uv:0.13.1 /uv /uvx /bin/
 
+# uv settings + put the .venv on PATH (no activation needed)
 ENV UV_COMPILE_BYTECODE=1 \
     UV_LINK_MODE=copy \
     UV_PYTHON_DOWNLOADS=never \
@@ -11,12 +14,12 @@ ENV UV_COMPILE_BYTECODE=1 \
 
 WORKDIR /app
 
-# Abhängigkeiten zuerst installieren, damit dieser Layer gecacht bleibt,
-# solange sich pyproject.toml/uv.lock nicht ändern
+# Install dependencies first so that this layer remains cached,
+# as long as pyproject.toml/uv.lock does not change
 COPY pyproject.toml uv.lock .python-version ./
 RUN uv sync --frozen --no-dev --no-install-project
 
-# main.py lädt das Modell aus seinem eigenen Verzeichnis
+# main.py loads the model from its own directory
 COPY src/api/v1/main.py .
 COPY model/model.joblib .
 
